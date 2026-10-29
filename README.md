@@ -3,7 +3,7 @@
 Jogo de pintura com matemática feito em Python com a biblioteca Pyxel,
 para a disciplina de Algoritmos e Estruturas de Dados I (FURG).
 
-Autora: Amanda Ferreira Duarte
+Autora: Amanda Ferreira Duarte | Matícula: 182556
 
 ## Ideia do jogo
 
