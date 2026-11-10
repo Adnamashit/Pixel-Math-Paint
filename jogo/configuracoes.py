@@ -4,3 +4,4 @@ TITULO = "Pixel Math Paint"
 LARGURA = 256
 ALTURA = 192
 FPS = 30
+TAMANHO_GRADE = 16         #minha imagem da matriz
