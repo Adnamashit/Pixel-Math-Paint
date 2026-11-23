@@ -1,34 +1,63 @@
-import pyxel 
+import pyxel
 
-from jogo.configuracoes import ALTURA, FPS, LARGURA, TITULO
-from jogo.nucleo.cena import Cena 
+from jogo.armazenamento.armazenamento_progresso import ArmazenamentoProgresso, Progresso
+from jogo.audio.efeitos_sonoros import EfeitosSonoros
+from jogo.cenas.cena_fase import CenaFase
+from jogo.cenas.cena_menu import CenaMenu
+from jogo.cenas.cena_transicao import CenaTransicao
+from jogo.cenas.cena_vitoria import CenaVitoria
+from jogo.configuracoes import ALTURA, ARQUIVO_PROGRESSO, FPS, LARGURA, TITULO, TOTAL_FASES
+from jogo.modelos.dados_fases import FASES
 
-class CenaTeste(Cena): #to fazendo herança aqui (passando Cena - uma classe - pra outra classe )
-    "Testeeeee, só pra ver se o menu vai funcionar ;)"
-
-    def atualizar (self):
-        pass #ainda ntem nada
-
-    def desenhar(self):
-        pyxel.text(80, 90, "Pixel Math Paint", 7) #podia usar funçao pronta??
-        pyxel.text(64,102, "Janela funcionando!", 10)
 
 class App:
+    """Controla a janela do Pyxel, a cena (tela) ativa e o progresso do jogador."""
+
     def __init__(self):
-        pyxel.init(LARGURA, ALTURA, title = TITULO, fps = FPS) #to importando do configuraçoes.py ;)
-        pyxel.mouse(True) #setinha do mouse pro jogo funcionar
+        pyxel.init(LARGURA, ALTURA, title=TITULO, fps=FPS, quit_key=pyxel.KEY_NONE)  # ESC nao fecha mais o jogo
+        pyxel.mouse(True)                      # setinha do mouse pro jogo funcionar
+        self.sons = EfeitosSonoros()
+        self.sons.preparar()
+        self.armazenamento = ArmazenamentoProgresso(ARQUIVO_PROGRESSO)
+        self.progresso = self.armazenamento.carregar()   # le o arquivo de texto (se existir)
+        self.cena = None                       # ainda nao ha tela ativa
+        self.trocar_cena(CenaMenu(self))       # o jogo comeca pelo menu
+        pyxel.run(self.atualizar, self.desenhar)
 
-        self.cena = None #n fiz tela ativa ainda
-        self.trocar_cena(CenaTeste(self)) #começa pela cena teste (n entendi mt bem a lógica disso)
-
-        pyxel.run(self.atualizar, self.desenhar) #atualiza e desenha
-    def trocar_cena(self, cena): #pra mudar a tela (menu, fase etc)
+    def trocar_cena(self, cena):               # pra mudar a tela (menu, fase etc)
         self.cena = cena
         cena.ao_entrar()
 
     def atualizar(self):
-        self.cena.atualizar()
+        self.cena.atualizar()                  # repassa a logica para a tela ativa
 
     def desenhar(self):
-        pyxel.cls(1)
+        pyxel.cls(1)                           # limpa a janela (azul-marinho)
         self.cena.desenhar()
+
+    # ---------- navegacao entre telas ----------
+    def ir_para_menu(self):
+        self.armazenamento.salvar(self.progresso)
+        self.trocar_cena(CenaMenu(self))
+
+    def novo_jogo(self):
+        self.progresso = Progresso()           # zera acertos, erros e fase
+        self.armazenamento.salvar(self.progresso)
+        self.iniciar_fase(1)
+
+    def continuar_jogo(self):
+        self.iniciar_fase(self.progresso.fase_liberada)
+
+    def iniciar_fase(self, numero):
+        self.trocar_cena(CenaFase(self, numero))
+
+    def concluir_fase(self, numero, pintura):
+        # chamado quando a pintura termina: salva e vai para a transicao (ou para a vitoria)
+        if numero >= TOTAL_FASES:
+            self.progresso.concluido = True
+            self.armazenamento.salvar(self.progresso)
+            self.trocar_cena(CenaVitoria(self))
+            return
+        self.progresso.fase_liberada = max(self.progresso.fase_liberada, numero + 1)
+        self.armazenamento.salvar(self.progresso)
+        self.trocar_cena(CenaTransicao(self, FASES[numero - 1], pintura, FASES[numero]))
